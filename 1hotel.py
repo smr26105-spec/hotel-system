@@ -26,7 +26,7 @@ init_db()
 with st.sidebar:
     st.header("🔐 لوحة المدير")
     admin_pass = st.text_input("باسورد المدير", type="password")
-    if admin_pass == "admin123": # <--- غير الباسورد ده براحتك
+    if admin_pass == "161980": # <--- غير الباسورد ده براحتك
         st.success("أهلاً يا مدير")
         if st.button("🗑️ مسح كل السجل"):
             with sqlite3.connect(db_path) as conn:
