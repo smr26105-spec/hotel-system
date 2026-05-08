@@ -33,7 +33,7 @@ with st.sidebar:
     st.header("🔐 لوحة المدير")
     admin_pass = st.text_input("أدخل الباسورد لرؤية الخزنة", type="password")
     if admin_pass == "161980": # <--- الرقم السري الجديد الخاص بك
-        st.success("أهلاً يا مدير")
+        st.success("أهلاً يا سلطان")
         st.metric("🏦 خزنة المدير (الإجمالي)", f"{manager_val:,.2f} ج.م")
         st.divider()
         if st.button("🗑️ مسح كل سجل العمليات"):
