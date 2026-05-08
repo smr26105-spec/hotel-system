@@ -22,13 +22,21 @@ def init_db():
 
 init_db()
 
-# --- لوحة تحكم المدير في الجنب ---
+# جلب بيانات الخزنة
+with sqlite3.connect(db_path) as conn:
+    res = pd.read_sql_query("SELECT * FROM v_vault", conn)
+    shift_val = res['shift_total'].iloc[0]
+    manager_val = res['manager_total'].iloc[0]
+
+# --- لوحة تحكم المدير (في الجنب) ---
 with st.sidebar:
     st.header("🔐 لوحة المدير")
-    admin_pass = st.text_input("باسورد المدير", type="password")
-    if admin_pass == "161980": # <--- غير الباسورد ده براحتك
+    admin_pass = st.text_input("أدخل الباسورد لرؤية الخزنة", type="password")
+    if admin_pass == "161980": # <--- الرقم السري الجديد الخاص بك
         st.success("أهلاً يا مدير")
-        if st.button("🗑️ مسح كل السجل"):
+        st.metric("🏦 خزنة المدير (الإجمالي)", f"{manager_val:,.2f} ج.م")
+        st.divider()
+        if st.button("🗑️ مسح كل سجل العمليات"):
             with sqlite3.connect(db_path) as conn:
                 conn.execute("DELETE FROM transactions")
             st.rerun()
@@ -37,7 +45,7 @@ with st.sidebar:
                 conn.execute("UPDATE v_vault SET manager_total = 0")
             st.rerun()
     elif admin_pass != "":
-        st.error("باسورد غلط")
+        st.error("الباسورد خطأ")
 
 st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🏨 نظام إدارة شقق عجيبة جاردن</h1>", unsafe_allow_html=True)
 st.divider()
@@ -57,11 +65,10 @@ with st.container():
         
     if st.button("حفظ التسكين وتحصيل المبلغ 📥", use_container_width=True):
         if name and apt_num:
-            # فحص هل الشقة مشغولة؟
             with sqlite3.connect(db_path) as conn:
                 check = pd.read_sql_query(f"SELECT type FROM transactions WHERE apt_num='{apt_num}' ORDER BY id DESC LIMIT 1", conn)
                 if not check.empty and "تسكين" in check['type'].iloc[0]:
-                    st.error(f"❌ شقة {apt_num} مشغولة حالياً! لازم تعمل لها إخلاء الأول.")
+                    st.error(f"❌ شقة {apt_num} مشغولة حالياً!")
                 else:
                     dt = datetime.now().strftime("%Y-%m-%d %H:%M")
                     conn.execute("INSERT INTO transactions (type, name, phone, apt_num, nights, amount, date) VALUES (?,?,?,?,?,?,?)", 
@@ -70,21 +77,13 @@ with st.container():
                     conn.commit()
                     st.success(f"تم تسكين {name} بنجاح!")
                     st.rerun()
-        else:
-            st.warning("برجاء إدخال البيانات الأساسية")
 
 st.divider()
 
-# --- عرض الخزنة ---
-with sqlite3.connect(db_path) as conn:
-    res = pd.read_sql_query("SELECT * FROM v_vault", conn)
-    shift_val = res['shift_total'].iloc[0]
-    manager_val = res['manager_total'].iloc[0]
-
-c1, c2, c3 = st.columns(3)
-c1.metric("💰 خزنة الشفت", f"{shift_val:,.2f} ج.م")
-c2.metric("🏦 خزنة المدير", f"{manager_val:,.2f} ج.م")
-with c3:
+# --- عرض خزنة الشفت فقط في الشاشة الرئيسية ---
+c1, c2 = st.columns(2)
+c1.metric("💰 خزنة الشفت (الحالية)", f"{shift_val:,.2f} ج.م")
+with c2:
     if st.button("🔄 تصفير الشفت"):
         with sqlite3.connect(db_path) as conn:
             conn.execute("UPDATE v_vault SET shift_total = 0")
@@ -93,12 +92,12 @@ with c3:
 st.divider()
 
 # --- سجل العمليات والإخلاء ---
-st.subheader("📋 سجل العمليات وإخلاء الشقق")
+st.subheader("📋 سجل العمليات")
 with sqlite3.connect(db_path) as conn:
     df = pd.read_sql_query("SELECT id, type, name, apt_num, date FROM transactions ORDER BY id DESC LIMIT 10", conn)
 
 for index, row in df.iterrows():
-    col_a, col_b, col_c, col_d = st.columns([1,2,2,1])
+    col_a, col_b, col_c, col_d = st.columns(4)
     col_a.write(f"🏠 {row['apt_num']}")
     col_b.write(f"👤 {row['name']}")
     col_c.write(f"📅 {row['date']}")
